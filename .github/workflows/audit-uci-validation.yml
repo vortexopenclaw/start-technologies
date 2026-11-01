@@ -20,7 +20,7 @@ jobs:
     - name: Canonical StartWRT backend unit suite
       env:
         PROFILE: debug
-      run: bash projects/start-wrt/build/run-tests.sh
+      run: make PROFILE=debug PLATFORM="$(uname -m)" start-wrt-test
   format:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
