@@ -1,0 +1,38 @@
+name: Pinned SDK ingredient validation
+'on':
+  push:
+    branches:
+    - ci/start9-sdk-validation
+  workflow_dispatch: null
+permissions:
+  contents: read
+jobs:
+  sdk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      with:
+        ref: d2340e5b1bdfefdb1ca37f2e2f47b07accbd5669
+        fetch-depth: 0
+    - name: Verify production head
+      run: test "$(git rev-parse HEAD)" = d2340e5b1bdfefdb1ca37f2e2f47b07accbd5669
+    - uses: actions/setup-node@v6
+      with:
+        node-version: 24.x
+    - name: Install root dependencies
+      run: npm ci
+    - name: Build and full scoped SDK and core tests
+      run: make start-sdk-test
+    - name: SDK typecheck and format
+      run: make -C projects/start-sdk check check-fmt
+    - name: Changed-file canonical formatting
+      run: npx prettier --check projects/start-sdk/tests/s9pk-make.test.mjs projects/start-sdk/changelog/patch-fixed-removed-build-ingredients.md
+    - name: Changelog validation
+      run: 'node scripts/changelog.mjs validate projects/start-sdk
+
+        node scripts/changelog.mjs check-version projects/start-sdk
+
+        git diff --check
+
+        '
