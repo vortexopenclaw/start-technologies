@@ -1,0 +1,56 @@
+name: Pinned UCI parser and caller validation
+'on':
+  push:
+    branches:
+    - ci/start9-ui-validation
+  workflow_dispatch: null
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      with:
+        ref: 5caf769045687a0fdb99ba67d3afdcb50f3fe061
+        fetch-depth: 0
+    - name: Verify production head
+      run: test "$(git rev-parse HEAD)" = 5caf769045687a0fdb99ba67d3afdcb50f3fe061
+    - name: Canonical StartWRT backend unit suite
+      env:
+        PROFILE: debug
+      run: bash projects/start-wrt/build/run-tests.sh
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      with:
+        ref: 5caf769045687a0fdb99ba67d3afdcb50f3fe061
+        fetch-depth: 0
+    - name: Verify production head
+      run: test "$(git rev-parse HEAD)" = 5caf769045687a0fdb99ba67d3afdcb50f3fe061
+    - uses: actions/setup-node@v6
+      with:
+        node-version: 24.x
+    - name: Pinned nightly formatter
+      run: 'rustup toolchain install nightly-2026-05-28 --profile minimal --component
+        rustfmt
+
+        rustup run nightly-2026-05-28 rustfmt --check --edition 2021 --config-path
+        rustfmt.toml projects/start-wrt/backend/uciedit/src/syntax.rs projects/start-wrt/backend/uciedit/src/tests.rs
+
+        '
+    - name: Changelog and canonical Prettier
+      run: 'npm ci
+
+        npx prettier --check projects/start-wrt/changelog/patch-fixed-uci-section-separators.md
+
+        node scripts/changelog.mjs validate projects/start-wrt
+
+        node scripts/changelog.mjs check-version projects/start-wrt
+
+        git diff --check
+
+        '
